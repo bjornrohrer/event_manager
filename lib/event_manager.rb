@@ -1,8 +1,27 @@
-lines = File.readlines("event_attendees.csv")
+require 'csv'
+puts "EventManager initialized"
 
-lines.each do |line|
-  next if line == " ,RegDate,first_Name,last_Name,Email_Address,HomePhone,Street,City,State,Zipcode\n"
-  columns = line.split(",")
-  name = columns[2]
-  puts name
+def clean_zipcode(zipcode)
+  if zipcode.nil?
+    "00000"
+  elsif zipcode.length < 5 
+    zipcode.rjust(5, "0")
+  elsif zipcode.length > 5
+    zipcode[0..4]
+  else
+    zipcode
+  end
+end
+
+
+contents = CSV.open(
+  "event_attendees.csv",
+  headers: true,
+  header_converters: :symbol
+  )
+
+contents.each do |row|
+  name = row[:first_name]
+  zipcode = clean_zipcode(row[:zipcode])
+  puts "#{name} #{zipcode}"
 end
