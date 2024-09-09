@@ -43,8 +43,9 @@ def clean_phone_number(phone_number)
 end
 
 def most_common_value(array)
-  array.group_by(&:itself).values.max_by(&:size).first
+  array.tally.max_by { |_, count| count }&.first
 end
+
 
 puts "EventManager initialized"
 
