@@ -31,11 +31,11 @@ def save_thank_you_letter(id, form_letter)
   end
 end
 
-def clean_phone_numebr(phone_number)
+def clean_phone_number(phone_number)
   phone_number = phone_number.to_s.tr('^0-9','')
   if phone_number.length == 10
     phone_number
-  elsif phone_number.length == 11 && phone_number[0] == 1 
+  elsif phone_number.length == 11 && phone_number[0] == '1' 
     phone_number.slice!(0)
   else 
     phone_number = '0000000000'
@@ -64,7 +64,7 @@ erb_template = ERB.new template_letter
 contents.each do |row|
   id = row[0]
   name = row[:first_name]
-  phone_number = clean_phone_numebr(row[:homephone])
+  phone_number = clean_phone_number(row[:homephone])
   zipcode = clean_zipcode(row[:zipcode])
   legislators = legislators_by_zipcode(zipcode)
 
