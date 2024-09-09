@@ -16,9 +16,6 @@ def legislators_by_zipcode(zip)
       levels: 'country',
       roles: ['legislatorUpperBody', 'legislatorLowerBody']
     ).officials
-    legislators = legislators.officials
-    legislator_names = legislators.map(&:name)
-    legislator_names.join(", ")
   rescue 
     'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
   end
@@ -43,9 +40,6 @@ contents.each do |row|
   legislators = legislators_by_zipcode(zipcode)
 
   form_letter = erb_template.result(binding)
-
-  personal_letter = template_letter.gsub('FIRST_NAME', name)
-  personal_letter.gsub!("LEGISLATORS", legislators)
 
   puts form_letter
 end
