@@ -11,8 +11,8 @@ def legislators_by_zipcode(zip)
   civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 
   begin 
-    legislators = civic_info.representative_info_by_address(
-     address: zip,
+    civic_info.representative_info_by_address(
+      address: zip,
       levels: 'country',
       roles: ['legislatorUpperBody', 'legislatorLowerBody']
     ).officials
@@ -40,6 +40,5 @@ contents.each do |row|
   legislators = legislators_by_zipcode(zipcode)
 
   form_letter = erb_template.result(binding)
-
   puts form_letter
 end
