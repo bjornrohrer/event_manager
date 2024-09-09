@@ -42,7 +42,15 @@ def clean_phone_numebr(phone_number)
   end
 end
 
+def most_common_value(array)
+  array.group_by(&:itself).values.max_by(&:size).first
+end
+
 puts "EventManager initialized"
+
+hours_people_signed_up = []
+day_of_the_week_people_signed_up = []
+
 
 contents = CSV.open(
   "event_attendees.csv",
@@ -60,7 +68,15 @@ contents.each do |row|
   zipcode = clean_zipcode(row[:zipcode])
   legislators = legislators_by_zipcode(zipcode)
 
+  datetime = Time.strptime(row[:regdate],"%m/%d/%y %H:%M")
+
+  hours_people_signed_up << datetime.hour
+  day_of_the_week_people_signed_up << datetime.wday
+
   form_letter = erb_template.result(binding)
 
   save_thank_you_letter(id, form_letter)
 end
+
+puts "Most common sign-up hour: #{most_common_value(hours_people_signed_up)}"
+puts "Most common sign-up day of the week: #{most_common_value(day_of_the_week_people_signed_up)}"
