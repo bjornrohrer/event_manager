@@ -43,7 +43,8 @@ def clean_phone_number(phone_number)
 end
 
 def most_common_value(array)
-  array.tally.max_by { |_, count| count }&.first
+  return nil if array.empty?
+  array.group_by(&:itself).max_by { |_, v| v.size }&.first
 end
 
 
