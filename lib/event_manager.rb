@@ -15,7 +15,7 @@ def legislators_by_zipcode(zip)
      address: zip,
       levels: 'country',
       roles: ['legislatorUpperBody', 'legislatorLowerBody']
-    )
+    ).officials
     legislators = legislators.officials
     legislator_names = legislators.map(&:name)
     legislator_names.join(", ")
@@ -33,6 +33,7 @@ contents = CSV.open(
   )
 
 template_letter = File.read("../form_letter.html")
+erb_template = ERB.new template_letter
 
 contents.each do |row|
   name = row[:first_name]
@@ -41,8 +42,10 @@ contents.each do |row|
   
   legislators = legislators_by_zipcode(zipcode)
 
+  form_letter = erb_template.result(binding)
+
   personal_letter = template_letter.gsub('FIRST_NAME', name)
   personal_letter.gsub!("LEGISLATORS", legislators)
 
-  puts personal_letter
+  puts form_letter
 end
