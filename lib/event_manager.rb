@@ -35,8 +35,8 @@ def clean_phone_numebr(phone_number)
   phone_number = phone_number.to_s.tr('^0-9','')
   if phone_number.length == 10
     phone_number
-  elsif phone_number.length == 11 && phone_number.first == 1 
-    phone_number.first.delete
+  elsif phone_number.length == 11 && phone_number[0] == 1 
+    phone_number.slice!(0)
   else 
     phone_number = '0000000000'
   end
