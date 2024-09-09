@@ -31,6 +31,17 @@ def save_thank_you_letter(id, form_letter)
   end
 end
 
+def clean_phone_numebr(phone_number)
+  phone_number = phone_number.to_s.tr('^0-9','')
+  if phone_number.length == 10
+    phone_number
+  elsif phone_number.length == 11 && phone_number.first == 1 
+    phone_number.first.delete
+  else 
+    phone_number = '0000000000'
+  end
+end
+
 puts "EventManager initialized"
 
 contents = CSV.open(
