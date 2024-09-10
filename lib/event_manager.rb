@@ -1,137 +1,84 @@
-require 'marshal'
+require 'csv'
+require 'google/apis/civicinfo_v2'
+require 'erb'
 
-class Hangman
-  MAX_GUESSES = 6
-  SAVE_FILE = 'hangman_save.dat'
+def clean_zipcode(zipcode)
+  zipcode.to_s.rjust(5, "0")[0..4]
+end
 
-  def initialize
-    @guessed_letters = []
-    @remaining_guesses = MAX_GUESSES
-    @word_progress = []
-    @random_word = ''
-  end
+def legislators_by_zipcode(zip)
+  civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
+  civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 
-  def play
-    load_game if File.exist?(SAVE_FILE) && yes_or_no?("A saved game was found. Do you want to resume it? (y/n): ")
-    
-    random_word if @random_word.empty?
-    
-    until game_over?
-      display_game_state
-      action = choose_action
-      case action
-      when 'guess'
-        user_letter
-      when 'save'
-        save_game
-        puts "Game saved. You can resume later."
-        return
-      when 'quit'
-        puts "Thanks for playing!"
-        return
-      end
-      update_game_state
-    end
-    display_result
-    File.delete(SAVE_FILE) if File.exist?(SAVE_FILE)
-  end
-
-  def random_word
-    words = File.readlines('google-10000-english-no-swears.txt').map(&:strip)
-    @valid_words = words.select { |word| (5..12).include?(word.length) }
-    @random_word = @valid_words.sample
-    @word_progress = Array.new(@random_word.length, '_')
-    puts "The word is #{@random_word.length} letters long"
-    @random_word
-  end
-
-  def user_letter
-    puts "Guess a letter"
-    letter = gets.chomp.downcase
-    if @guessed_letters.include?(letter)
-      puts "You've already guessed that letter. Try again."
-    else
-      @guessed_letters << letter
-      if @random_word.include?(letter)
-        puts "Correct! '#{letter}' is in the word."
-        update_word_progress(letter)
-      else
-        @remaining_guesses -= 1
-        puts "Wrong! '#{letter}' is not in the word. You have #{@remaining_guesses} guesses left."
-      end
-    end
-  end
-
-  def update_word_progress(letter)
-    @random_word.chars.each_with_index do |char, index|
-      @word_progress[index] = letter if char == letter
-    end
-  end
-
-  def display_game_state
-    puts "\nWord: #{@word_progress.join(' ')}"
-    puts "Guessed letters: #{@guessed_letters.join(', ')}"
-    puts "Remaining guesses: #{@remaining_guesses}"
-  end
-
-  def update_game_state
-    # This method is called after each guess, but doesn't need to do anything
-    # since we update the game state in other methods
-  end
-
-  def game_over?
-    @word_progress.join == @random_word || @remaining_guesses == 0
-  end
-
-  def display_result
-    if @word_progress.join == @random_word
-      puts "Congratulations! You've guessed the word: #{@random_word}"
-    else
-      puts "Game over! The word was: #{@random_word}"
-    end
-  end
-
-  def save_game
-    game_state = {
-      guessed_letters: @guessed_letters,
-      remaining_guesses: @remaining_guesses,
-      word_progress: @word_progress,
-      random_word: @random_word
-    }
-    File.open(SAVE_FILE, 'wb') { |file| Marshal.dump(game_state, file) }
-  end
-
-  def load_game
-    game_state = Marshal.load(File.read(SAVE_FILE))
-    @guessed_letters = game_state[:guessed_letters]
-    @remaining_guesses = game_state[:remaining_guesses]
-    @word_progress = game_state[:word_progress]
-    @random_word = game_state[:random_word]
-    puts "Game loaded successfully!"
-  end
-
-  def choose_action
-    loop do
-      puts "Choose an action: (g)uess a letter, (s)ave game, or (q)uit"
-      choice = gets.chomp.downcase
-      return 'guess' if choice == 'g' || choice == 'guess'
-      return 'save' if choice == 's' || choice == 'save'
-      return 'quit' if choice == 'q' || choice == 'quit'
-      puts "Invalid choice. Please try again."
-    end
-  end
-
-  def yes_or_no?(prompt)
-    loop do
-      print prompt
-      choice = gets.chomp.downcase
-      return true if choice == 'y' || choice == 'yes'
-      return false if choice == 'n' || choice == 'no'
-      puts "Invalid input. Please enter 'y' or 'n'."
-    end
+  begin 
+    civic_info.representative_info_by_address(
+      address: zip,
+      levels: 'country',
+      roles: ['legislatorUpperBody', 'legislatorLowerBody']
+    ).officials
+  rescue 
+    'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
   end
 end
 
-# Create and start a new game
-game = Hangman.new
-game.play
+def save_thank_you_letter(id, form_letter)
+  Dir.mkdir('output') unless Dir.exist?('output')
+
+  filename = "output/thanks_#{id}.html"
+
+  File.open(filename, 'w') do |file|
+    file.puts form_letter
+  end
+end
+
+def clean_phone_number(phone_number)
+  phone_number = phone_number.to_s.tr('^0-9','')
+  if phone_number.length == 10
+    phone_number
+  elsif phone_number.length == 11 && phone_number[0] == '1' 
+    phone_number.slice!(0)
+  else 
+    phone_number = '0000000000'
+  end
+end
+
+def most_common_value(array)
+  return nil if array.empty?
+  array.group_by(&:itself).max_by { |_, v| v.size }&.first
+end
+
+
+puts "EventManager initialized"
+
+hours_people_signed_up = []
+day_of_the_week_people_signed_up = []
+
+
+contents = CSV.open(
+  "event_attendees.csv",
+  headers: true,
+  header_converters: :symbol
+  )
+
+template_letter = File.read('form_letter.erb')
+erb_template = ERB.new template_letter
+
+contents.each do |row|
+  id = row[0]
+  name = row[:first_name]
+  phone_number = clean_phone_number(row[:homephone])
+  zipcode = clean_zipcode(row[:zipcode])
+  legislators = legislators_by_zipcode(zipcode)
+
+  datetime = Time.strptime(row[:regdate],"%m/%d/%y %H:%M")
+
+  hours_people_signed_up << datetime.hour
+  day_of_the_week_people_signed_up << datetime.wday
+
+  form_letter = erb_template.result(binding)
+
+  save_thank_you_letter(id, form_letter)
+end
+
+puts "Most common sign-up hour: #{most_common_value(hours_people_signed_up)}"
+puts "Most common sign-up day of the week: #{most_common_value(day_of_the_week_people_signed_up)}"
